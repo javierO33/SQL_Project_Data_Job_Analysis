@@ -52,7 +52,7 @@ The conclusions we can draw from this query are:
 - **Diverse Employers**: The results show 9 different companies offering high-paying jobs, indicating strong competition.
 - **Job Title Dominance**: All of the high-paying roles are in the data field, showing its dominance over other IT areas.
 
-![Top Paying Jobs](assets\top_paying_jobs.png)
+![Top Paying Jobs](assets/top_paying_jobs.png)
 *Bar Graph Visualizing the top 10 salaries in Argentina*
 
 ### 2. What skills are required for those top-paying jobs?
@@ -132,10 +132,10 @@ After analising both list we can come to the conclusion that
 - **Big Data and Cloud**: Tools like Apache Spark and Azure are in high demand.
 - **Development**: We can conclude that most in-demand tools are focused on data analysis, except for Java.
 
-![Top Demand Skills Argentina](assets\top_demand_skills_argentina.png)
+![Top Demand Skills Argentina](assets/top_demand_skills_argentina.png)
 *Bar Graph Visualizing the 10 most in-demand skills in Argentina*
 
-![Top Demand Skills Worldwide](assets\top_demand_skills_worldwide.png)
+![Top Demand Skills Worldwide](assets/top_demand_skills_worldwide.png)
 *Bar Graph Visualizing the 10 most in-demand skills Worldwide*
 
 ### 4. Which skills are associated with higher salaries?
