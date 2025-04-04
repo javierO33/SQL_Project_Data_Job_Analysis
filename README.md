@@ -1,5 +1,5 @@
 # Introduction
-Using a dataset with job market data focused on the IT sector, this project explores the highest-paying jobs, the most in-demand skills in the Argentine market, and compares them with global trends to assess whether the local market is up to date. Additionally, It analyzes the highest-paying skills in Argentina and which are the optimal skills in terms of demand and average salary.
+Using a dataset with job market data focused on the IT sector, this project explores the highest-paying jobs, the most in-demand skills available in the Argentine market, and compares them with global trends to assess whether the local market is up to date. Additionally, It analyzes the highest-paying skills in Argentina and which companies offer the most job opportunities in Argentina.
 
 You can check the SQL queries right here: [project_SQL folder](/project_SQL/)
 
@@ -11,7 +11,7 @@ The idea for this project comes from the need to understand the most in-demand s
 2. What skills are required for those top-paying jobs?  
 3. What skills are most in demand in Argentina, and how do they compare globally?  
 4. Which skills are associated with higher salaries?  
-5. What are the most optimal skills to learn based on demand and salary?  
+5. Which companies have the highest number of job openings in Argentina? 
 
 # Tools Used in This Project  
 
@@ -26,59 +26,65 @@ For the analysis of this data, I used several tools:
 Each query of this project answer a question to make my decision, there is how I approched each quest
 
 ### 1. What are the top-paying jobs in Argentina?
-This query retrieves the top 10 highest-paying job postings in Argentina. It selects key job details such as job ID, title, company name, location, schedule type, average annual salary, and posting date. The data is sourced from the ```job_postings_fact``` table, with company names retrieved via a **LEFT JOIN** with the ```company_dim``` table. The results are filtered to include only jobs with a non-null salary and are sorted in descending order based on salary.
+This query retrieves the top 10 highest-paying job postings in Argentina. It selects key job details such as title, company name, location and average annual salary. The data is sourced from the `job_postings_fact` table, with company names retrieved via a **LEFT JOIN** with the `company_dim` table. The results are filtered to include only jobs with a non-null salary and are sorted in descending order based on salary.
 
 ```sql
 SELECT 
-  job_postings_fact.job_id,
   job_postings_fact.job_title,
   company_dim.name AS company,
   job_postings_fact.job_location,
-  job_postings_fact.job_schedule_type,
-  job_postings_fact.salary_year_avg,
-  job_postings_fact.job_posted_date
+  job_postings_fact.salary_year_avg
 FROM job_postings_fact
 LEFT JOIN company_dim ON job_postings_fact.company_id = company_dim.company_id
 WHERE
     salary_year_avg IS NOT NULL
-    AND job_location LIKE('%Argentina%')
+    AND job_country = 'Argentina'
 ORDER BY
     salary_year_avg DESC
 LIMIT 10
+
 ```
+| Job Title                                    | Company         | Job Location                                     | Salary (Yearly) |
+|----------------------------------------------|----------------|-------------------------------------------------|----------------|
+| Director of Engineering, ML Platform        | MongoDB        | Anywhere                                       | 222000.0       |
+| Staff Data Scientist                        | MongoDB        | Anywhere                                       | 207500.0       |
+| Staff Engineer, Service Architecture        | MongoDB        | Anywhere                                       | 197500.0       |
+| Cloud Operations Engineer (3rd Shift, FedRamp) | MongoDB     | Anywhere                                       | 182500.0       |
+| Data Scientist, Growth                      | Near           | Anywhere                                       | 157000.0       |
+| Senior Data Engineer                        | MediaLab       | Argentina                                      | 147500.0       |
+| Data Engineer                               | Dialpad        | Buenos Aires, Argentina                        | 147500.0       |
+| [VMB] Senior Data Engineer                  | Software Mind  | Buenos Aires, Argentina                        | 147500.0       |
+| LAS Seeds Data Engineer                     | Syngenta Group | Vicente López, Buenos Aires Province, Argentina | 134241.0       |
+| Data Scientist Manager                      | Visa           | Buenos Aires, Argentina                        | 132500.0       |
+
 The conclusions we can draw from this query are:
-
-- **Wide Salary Range**: The highest paying jobs range from $147,500 to $98,283.
-- **Diverse Employers**: The results show 9 different companies offering high-paying jobs, indicating strong competition.
-- **Job Title Dominance**: All of the high-paying roles are in the data field, showing its dominance over other IT areas.
-
-![Top Paying Jobs](assets/top_paying_jobs.png)
-*Bar Graph Visualizing the top 10 salaries in Argentina*
+- **Wide Salary Range**: The highest paying jobs range from $222,000 to $132500 per year.
+- **Diverse Employers**: The results show 7 different companies offering high-paying jobs, indicating strong competition.
+- **Job Title Dominance**: The majority of these high-paying roles are in data-related positions (Data Scientist, Data Engineer, etc.), highlighting the strong demand for data professionals over other IT fields.
 
 ### 2. What skills are required for those top-paying jobs?
 
-The CTE (Common Table Expression) ```top_jobs``` retrieves the top 10 highest paying jobs in Argentina. The main query then retrieves the skills associated with those 10 jobs. Using an **INNER JOIN** between the tables ```skills_job_dim```, ```top_jobs```, and ```skills_dim```, I obtained the skills associated with each job, and then I filtered the results to only include those in Argentina.
+The CTE (Common Table Expression) `top_jobs` retrieves the top 10 highest paying jobs in Argentina. The main query then retrieves the skills associated with those 10 jobs. Using an **INNER JOIN** between the tables `skills_job_dim`, `top_jobs`, and `skills_dim`, I obtained the skills associated with each job, and then I filtered the results to only include those in Argentina.
+The second query is an auxiliary query used to generate a CSV file for creating a bar chart of the most in-demand skills.
 
 ```sql
 WITH top_jobs AS(
     SELECT 
-        job_postings_fact.job_id,
-        job_postings_fact.job_title,
-        company_dim.name AS company,
-        job_postings_fact.job_location,
-        job_postings_fact.job_schedule_type,
-        job_postings_fact.salary_year_avg,
-        job_postings_fact.job_posted_date
+    job_postings_fact.job_id,
+    job_postings_fact.job_title,
+    company_dim.name AS company,
+    job_postings_fact.job_location,
+    job_postings_fact.salary_year_avg
     FROM job_postings_fact
     LEFT JOIN company_dim ON job_postings_fact.company_id = company_dim.company_id
     WHERE
         salary_year_avg IS NOT NULL
-        AND job_location LIKE('%Argentina%')
+        AND job_country = 'Argentina'
     ORDER BY
         salary_year_avg DESC
     LIMIT 10
 )
-SELECT 
+SELECT
     top_jobs.*,
     skills_dim.skills
 FROM top_jobs
@@ -86,13 +92,33 @@ INNER JOIN skills_job_dim ON top_jobs.job_id = skills_job_dim.job_id
 INNER JOIN skills_dim ON skills_job_dim.skill_id = skills_dim.skill_id
 ORDER BY
     top_jobs.salary_year_avg DESC
+--Auxiliary query
+SELECT
+    COUNT(skills_dim.skill_id) as skills_demand_count,
+    skills_dim.skills
+FROM top_jobs
+INNER JOIN skills_job_dim ON top_jobs.job_id = skills_job_dim.job_id 
+INNER JOIN skills_dim ON skills_job_dim.skill_id = skills_dim.skill_id
+GROUP BY
+    skills_dim.skills
+ORDER BY
+    skills_demand_count DESC
+LIMIT 10
+
 ```
+
+![Top Most In-Demand Skills for the Best-Payings Jobs In Argentina](assets/top_payings_job_skills.png)
+*Bar Graph Visualizing the Top 10 Most In-Demand Skills for the Best-Payings Jobs In Argentina*
+
 The conclusions we can draw from this query are:
-- The skills observed in the results include SQL, Excel, Tableau, Python, R, Linux, and others. The majority of these are tools or skills used by Data Analysts, Data Scientists, Machine Learning professionals, and all jobs related to the Data field. This makes sense, as we found that the top-paying jobs are all in the Data Area.
+- **Python and MongoDB** are the most in-demand skills, required in 8 out of the 10 top-paying jobs.
+- **GCP, Java, and Spark** follow closely, each appearing in 4 job postings.
+- **Scala, Kubernetes, SQL, and AWS** are required in 3 jobs each.
+- **Databricks** is the least common among the top 10, appearing in only 2 job postings.
 
 ### 3. What skills are most in demand in Argentina, and how do they compare globally?
 
-With this query, we will obtain the top 10 most in-demand skills for jobs in Argentina. Using an **INNER JOIN** between the tables ```skills_job_dim```, ```skills_job_dim```, and ```skills_dim```, we retrieve the skills associated with each job, then sort them by demand.
+With this query, we will obtain the top 10 most in-demand skills for jobs in Argentina. Using an **INNER JOIN** between the tables `skills_job_dim`, `skills_job_dim`, and `skills_dim`, we retrieve the skills associated with each job, then sort them by demand.
 
 ```sql
 SELECT 
@@ -102,7 +128,7 @@ FROM job_postings_fact
 INNER JOIN skills_job_dim ON skills_job_dim.job_id = job_postings_fact.job_id
 INNER JOIN skills_dim ON skills_job_dim.skill_id = skills_dim.skill_id
 WHERE
-    job_location LIKE('%Argentina%')
+    job_country ='Argentina'
 GROUP BY
     skills
 ORDER BY
@@ -115,7 +141,6 @@ SELECT
     skills_dim.skills,
     COUNT(job_postings_fact.job_id) as demand
 FROM job_postings_fact
-
 INNER JOIN skills_job_dim ON skills_job_dim.job_id = job_postings_fact.job_id
 INNER JOIN skills_dim ON skills_job_dim.skill_id = skills_dim.skill_id
 GROUP BY
@@ -126,10 +151,10 @@ LIMIT 10
 ```
 After analising both list we can come to the conclusion that
 
-- **Market Updates**: The most in-demand skills in Argentina are the same as those in the global market. This is a good sign that the Argentine job market is adopting top technologies.
+- **Market Updates**: The most in-demand skills in Argentina are the same as those in the global market except for GCP which is in Argentina's top 10, while Excel holds that spot worldwide. This is a positive sign that the Argentine job market is aligning with top global technologies.
 - **Tools for Analysis and Visualization**: The most in-demand tools include Excel, Power BI, and Tableau.
 - **Data Analyst Languages**: The top two most in-demand skills are SQL and Python, both essential for data-related tasks. R is also commonly used.
-- **Big Data and Cloud**: Tools like Apache Spark and Azure are in high demand.
+- **Big Data and Cloud**: Tools like Apache Spark, Azure and GCP are in high demand.
 - **Development**: We can conclude that most in-demand tools are focused on data analysis, except for Java.
 
 ![Top Demand Skills Argentina](assets/top_demand_skills_argentina.png)
@@ -140,7 +165,7 @@ After analising both list we can come to the conclusion that
 
 ### 4. Which skills are associated with higher salaries?
 
-This query identifies the skills associated with the highest salaries. Using an **INNER JOIN** between the tables ```job_postings_fact```, ```skills_job_dim```, and ```skills_dim```, it retrieves the skills linked to each job, then groups them by skill and sorts them by average salary.
+This query identifies the skills associated with the highest salaries. Using an **INNER JOIN** between the tables `job_postings_fact`, `skills_job_dim`, and `skills_dim`, it retrieves the skills linked to each job, then groups them by skill and sorts them by average salary.
 
 ```sql
 SELECT 
@@ -150,7 +175,7 @@ FROM job_postings_fact
 INNER JOIN skills_job_dim ON job_postings_fact.job_id = skills_job_dim.job_id
 INNER JOIN skills_dim ON skills_job_dim.skill_id = skills_dim.skill_id
 WHERE
-    job_postings_fact.job_location LIKE('%Argentina%')
+    job_postings_fact.job_country = 'Argentina'
     AND job_postings_fact.salary_year_avg IS NOT NULL
 GROUP BY
     skills_dim.skills
@@ -158,86 +183,65 @@ ORDER BY
     avg_salary DESC
 LIMIT 10
 ```
-| Skill     | Average Salary ($) |
-|-----------|----------------------|
-| GitLab    | 147,500              |
-| Golang    | 147,500              |
-| GDPR      | 147,500              |
-| Scala     | 143,080              |
-| Alteryx   | 134,241              |
-| Jenkins   | 126,675              |
-| Kubernetes| 123,201              |
-| Linux     | 122,892              |
-| Flow      | 122,722              |
-| Shell     | 120,000              |
+| Skill      | Average Salary (USD) |
+|------------|---------------------|
+| C++        | 197,500             |
+| Go         | 182,500             |
+| Splunk     | 182,500             |
+| MongoDB    | 181,255             |
+| HTML       | 157,000             |
+| GitLab     | 147,500             |
+| GDPR       | 147,500             |
+| Scala      | 143,080             |
+| Linux      | 142,761             |
+| Kubernetes | 135,060             |
 Here is a summary of the highest-paying skills in the Argentine job market:
 
-- **Software Development & DevOps**: GitLab, Jenkins, Golang, Scala
-- **Infrastructure & Cloud Computing**: Kubernetes, Linux, Shell
-- **Data Analysis & Automation**: Alteryx, Flow
-- **Security & Regulation**: GDPR
+
+- **Programming Language**: C++, Go, Scala, HTML.
+- **Databases & Big Data**: MongoDB, Splunk.
+- **Infrastructure & DevOps**: Linux, Kubernetes, GitLab.
+- **Security & Compliance**: GDPR.
 
 
 
-### 5. What are the most optimal skills to learn based on demand and salary?
+### 5. Which companies have the highest number of job openings in Argentina?
 
-This query shows the most in-demand and highest-paying skills. Using an **INNER JOIN** between the tables ```job_postings_fact```, ```skills_job_dim```, and ```skills_dim```, it retrieves the skills with at least 10 job offers, then sorts them by average salary and demand.
+This query shows which companies have the highest number of job openings in Argentina. Using an **INNER JOIN** between the tables `job_postings_fact` and `company_dim`, it retrieves the companies with the most job postings in Argentina. The results are then grouped by company name and ordered by the number of job postings in descending order.
 
 ```sql
 SELECT
-    skills_dim.skills,
-    COUNT(skills_job_dim.job_id) as demand,
-    ROUND (AVG(job_postings_fact.salary_year_avg)) as avg_salary
+    company_dim.name AS company_name,
+    COUNT(job_postings_fact.job_id) AS job_count
 FROM job_postings_fact
-INNER JOIN skills_job_dim ON job_postings_fact.job_id = skills_job_dim.job_id
-INNER JOIN skills_dim ON skills_job_dim.skill_id = skills_dim.skill_id
+INNER JOIN company_dim ON job_postings_fact.company_id = company_dim.company_id
 WHERE
-    job_postings_fact.salary_year_avg IS NOT NULL
+    job_postings_fact.job_country = 'Argentina'
 GROUP BY
-    skills_dim.skills
-HAVING
-    COUNT(skills_job_dim.job_id) > 10
+    company_dim.name
 ORDER BY
-    avg_salary DESC,
-    demand DESC
-LIMIT 25
+    job_count DESC
+LIMIT 10
 ```
- Skill          | Demand | Average Salary (ARS) |
-|---------------|--------|----------------------|
-| Mongo         | 262    | 170,715              |
-| dplyr         | 19     | 160,667              |
-| Node          | 65     | 154,408              |
-| Cassandra     | 530    | 154,124              |
-| Watson        | 31     | 152,844              |
-| RShiny        | 29     | 151,611              |
-| Hugging Face  | 37     | 148,648              |
-| Neo4j         | 123    | 147,708              |
-| Scala         | 1,912  | 145,120              |
-| Kafka         | 1,642  | 144,754              |
-| PyTorch       | 1,081  | 144,470              |
-| MXNet         | 50     | 143,695              |
-| Theano        | 37     | 143,404              |
-| Shell         | 731    | 143,370              |
-| Golang        | 109    | 143,139              |
-| Airflow       | 1,506  | 142,386              |
-| TensorFlow    | 1,225  | 142,370              |
-| Spark         | 4,025  | 141,734              |
-| Redshift      | 1,520  | 140,792              |
-| Airtable      | 22     | 140,615              |
-| Ruby on Rails | 18     | 140,130              |
-| Scikit-learn  | 688    | 139,603              |
-| DynamoDB      | 220    | 139,548              |
-| Rust          | 71     | 139,349              |
-| Clojure       | 12     | 139,342              |
+| Company Name             | Job Count |
+|--------------------------|----------|
+| Emprego                  | 3071     |
+| Listopro                 | 349      |
+| Accenture                | 139      |
+| Web:                     | 97       |
+| Confidencial             | 89       |
+| Fusemachines             | 58       |
+| IT Scout                 | 57       |
+| Turing                   | 57       |
+| AgileEngine              | 39       |
+| JPMorgan Chase & Co.     | 36       |
 
 Here is a summary of the most optimal skills in the job market:
 
-- **Software Development & Backend**: Node, Mongo, Cassandra, Scala, Golang, Ruby on Rails, 4 out of these 6 technologies are in the top 10 highest-paying skills, with Cassandra having the most demand and Mongo being the highest-paying.
-- **Big Data & Data Analysis**: Spark, Redshift, Airflow, DynamoDB, Hugging Face, Scikit-learn, TensorFlow, PyTorch, MXNet, Theano, RShiny, The data analysis field has the most skills in the top 25 based on demand and salary, with 12 skills listed.
-- **Automation & Orchestration**: Shell, Airflow.
-- **Artificial Intelligence Technologies**: Watson is the 5th highest-paying skill and the only technology in its field.
-- **Frontend Technologies & Visualization**: dplyr, Airtable
-- **Networking and Distributed Services**: Kafka, Neo4j, Clojure.
+- **Clear Dominance**: Emprego dominates the Argentine job market with 3,071 job offers, a significantly higher number than the second company.
+- **Balanced market**: Aside from Emprego, the other companies have a relatively similar number of job openings, showing a more balanced distribution.
+- **Different types of companies**: The list includes IT consulting firms like Accenture and AgileEngine, job platforms like Emprego and Listopro, and multinational companies like JPMorgan Chase & Co.
+
 
 # What I Learned
 
@@ -249,11 +253,11 @@ Here is a summary of the most optimal skills in the job market:
 # Conclusions
 
 ### Insights
-1. **Top-Paying Jobs in Argentina**: The highest-paying jobs in Argentina are in the Data field, with the highest salary reaching $147,500.
+1. **Top-Paying Jobs in Argentina**: The highest-paying jobs in Argentina are in the Data field, with the highest salary reaching $222,000.
 2. **Skills for High-Paying Jobs in Argentina**: High-paying jobs require advanced knowledge of a wide range of tools related to Data Analysis, Machine Learning, and Data Science.
 3. **Most In-Demand Skills**: SQL and Python are the most in-demand skills both in Argentina and worldwide. These are the most valuable skills to learn in the market.
-4. **Skills with the Highest Salaries in Argentina**: Specialized skills such as GitLab and Golang in Software Development & DevOps offer the highest salaries in the Argentine job market.
-5. **Optimal Skills for Job Market Value**: SQL leads in demand and offers a high average salary, making it one of the most valuable skills to learn.
+4. **Skills with the Highest Salaries in Argentina**: Programming languages such as C++ and Go offer the highest salaries in the Argentine job market.
+5. **Company with the Most Job Opportunities in Argentina**: Emprego has the highest number of job postings, making it a key company to follow when searching for job opportunities.
 
 ### Closing Thoughts
 

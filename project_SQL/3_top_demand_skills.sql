@@ -6,7 +6,7 @@ FROM job_postings_fact
 INNER JOIN skills_job_dim ON skills_job_dim.job_id = job_postings_fact.job_id
 INNER JOIN skills_dim ON skills_job_dim.skill_id = skills_dim.skill_id
 WHERE
-    job_location LIKE('%Argentina%')
+    job_country ='Argentina'
 GROUP BY
     skills
 ORDER BY
@@ -17,7 +17,6 @@ SELECT
     skills_dim.skills,
     COUNT(job_postings_fact.job_id) as demand
 FROM job_postings_fact
-
 INNER JOIN skills_job_dim ON skills_job_dim.job_id = job_postings_fact.job_id
 INNER JOIN skills_dim ON skills_job_dim.skill_id = skills_dim.skill_id
 GROUP BY
