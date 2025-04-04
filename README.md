@@ -23,7 +23,7 @@ For the analysis of this data, I used several tools:
 
 # Analysis
 
-Each query of this project answer a question to make my decision, there is how I approched each quest
+Each query of this project answer a question to make my decision, there is how I approched each question:
 
 ### 1. What are the top-paying jobs in Argentina?
 This query retrieves the top 10 highest-paying job postings in Argentina. It selects key job details such as title, company name, location and average annual salary. The data is sourced from the `job_postings_fact` table, with company names retrieved via a **LEFT JOIN** with the `company_dim` table. The results are filtered to include only jobs with a non-null salary and are sorted in descending order based on salary.
@@ -195,8 +195,8 @@ LIMIT 10
 | Scala      | 143,080             |
 | Linux      | 142,761             |
 | Kubernetes | 135,060             |
-Here is a summary of the highest-paying skills in the Argentine job market:
 
+Here is a summary of the highest-paying skills in the Argentine job market:
 
 - **Programming Language**: C++, Go, Scala, HTML.
 - **Databases & Big Data**: MongoDB, Splunk.
